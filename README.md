@@ -8,9 +8,9 @@ which in turn is a fork (see "Previous Updates" below) from the original
 [Java Application Bundler](https://svn.java.net/svn/appbundler~svn).
 
 Details of the ant task are given in the
-[ant task documentation](http://htmlpreview.github.io/?https://github.com/rschmunk/appbundler/blob/master/appbundler/doc/appbundler.html).
+[ant task documentation](http://htmlpreview.github.io/?https://github.com/rschmunk/appbundler/blob/main/appbundler/doc/appbundler.html).
 
-These system properties are passed to the JVM:
+These macOS system properties are passed to the JVM:
 
 - `LibraryDirectory`
 - `DocumentsDirectory`
