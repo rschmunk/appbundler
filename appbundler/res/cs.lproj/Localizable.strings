@@ -1,5 +1,4 @@
 "JRELoadError" = "Není možné nahrát Java Runtime Environment.";
-"JRExLoadError" = "Není možné nahrát Java %d Runtime Environment.";
 "JRExLoadFullError" = "Tato aplikace vyžaduje, aby na Vašem počítači byla instalována Java %d nebo novější.  Prosím stáhněte a instalujte nejnovější verzi Javy z adresy www.java.com a zkuste to znovu.";
 
 "MainClassNameRequired" = "Je požadován název hlavní třídy.";
