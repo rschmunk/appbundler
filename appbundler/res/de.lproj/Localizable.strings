@@ -1,5 +1,5 @@
 "JRELoadError" = "Kann die Java Laufzeitumgebung nicht laden.";
-"JRExLoadFullError" = "Diese Anwendung benötigt die Java %d Laufzeitumgebung oder höher auf Ihrem Computer installiert sein. Bitte installieren Sie die neueste Version von Java von www.java.com und erneut versuchen.";
+"JRExLoadFullError" = "Diese Anwendung benötigt die Java %d Laufzeitumgebung oder höher auf Ihrem Computer installiert sein. Bitte installieren Sie die neueste Version von Java von www.adoptopenjdk.net und erneut versuchen.";
 
 "MainClassNameRequired" = "Hauptklassenname ist erforderlich.";
 "JavaDirectoryNotFound" = "Kann den Inhalt des Java-Ordners nicht lesen.";

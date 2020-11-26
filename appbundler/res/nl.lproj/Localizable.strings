@@ -1,5 +1,5 @@
 "JRELoadError" = "Niet mogelijk Java Runtime Environment te laden.";
-"JRExLoadFullError" = "Deze toepassing vereist dat Java %d of later moet zijn geïnstalleerd op uw computer. Download en installeer de laatste versie van Java vanaf www.java.com en probeer opnieuw.";
+"JRExLoadFullError" = "Deze toepassing vereist dat Java %d of later moet zijn geïnstalleerd op uw computer. Download en installeer de laatste versie van Java vanaf www.adoptopenjdk.net en probeer opnieuw.";
 
 "MainClassNameRequired" = "Naam voor hoofdklasse is vereist.";
 "JavaDirectoryNotFound" = "Niet mogelijk inhoud van map Java te nummeren.";

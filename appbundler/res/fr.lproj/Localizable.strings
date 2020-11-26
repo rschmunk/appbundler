@@ -1,5 +1,5 @@
 "JRELoadError" = "Impossible de charger l'environnement d'exécution Java.";
-"JRExLoadFullError" = "Cette application nécessite la présence de Java %d ou supérieur sur votre ordinateur. Veuillez télécharger et installer la dernière version de Java depuis www.java.com et essayez à nouveau.";
+"JRExLoadFullError" = "Cette application nécessite la présence de Java %d ou supérieur sur votre ordinateur. Veuillez télécharger et installer la dernière version de Java depuis www.adoptopenjdk.net et essayez à nouveau.";
 
 "MainClassNameRequired" = "Le nom de la classe principale est obligatoire.";
 "JavaDirectoryNotFound" = "Impossible d'énumérer le contenu du répertoire Java.";

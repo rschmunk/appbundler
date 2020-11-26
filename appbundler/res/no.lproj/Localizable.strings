@@ -1,5 +1,5 @@
 "JRELoadError" = "Kunne ikke laste inn Java Runtime Environment.";
-"JRExLoadFullError" = "Dette programmet krever at Java %d eller nyere er installert på datamaskinen. Last ned og installer den nyeste versjonen av Java fra www.java.com og prøv på nytt.";
+"JRExLoadFullError" = "Dette programmet krever at Java %d eller nyere er installert på datamaskinen. Last ned og installer den nyeste versjonen av Java fra www.adoptopenjdk.net og prøv på nytt.";
 
 "MainClassNameRequired" = "Hovednavn for klasse kreves.";
 "JavaDirectoryNotFound" = "Kunne ikke liste opp innholdet i Java-mappen.";

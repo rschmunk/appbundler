@@ -1,5 +1,5 @@
 "JRELoadError" = "Impossibile caricare Java Runtime Environment.";
-"JRExLoadFullError" = "Questa applicazione necessita che Java %d o successivo sia installato nel computer. Scaricare e installare l'ultima versione di Java da www.java.com e riprovare.";
+"JRExLoadFullError" = "Questa applicazione necessita che Java %d o successivo sia installato nel computer. Scaricare e installare l'ultima versione di Java da www.adoptopenjdk.net e riprovare.";
 
 "MainClassNameRequired" = "È richiesto il nome della classe principale.";
 "JavaDirectoryNotFound" = "Impossibile enumerare il contenuto della directory Java.";
