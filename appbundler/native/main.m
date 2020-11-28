@@ -510,7 +510,6 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSString *sandboxEnabledVar = [NSString stringWithFormat:@"-DSandboxEnabled=%@", sandboxEnabled];
     [systemArguments addObject:sandboxEnabledVar];
 
-
     // Mojave Dark Mode enabled?
     NSString *osxMode = [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
     BOOL isDarkMode = (osxMode != nil && [osxMode isEqualToString:@"Dark"]);
@@ -536,8 +535,6 @@ int launch(char *commandName, int progargc, char *progargv[]) {
         addModifierFlagToSystemArguments(NSEventModifierFlagHelp, @"LaunchModifierFlagHelp", launchModifierFlags, systemArguments);
         addModifierFlagToSystemArguments(NSEventModifierFlagFunction, @"LaunchModifierFlagFunction", launchModifierFlags, systemArguments);
     }
-
-
 
     // Remove -psn argument
     int newProgargc = progargc;
@@ -705,7 +702,7 @@ NSString * findJavaDylib (
         required = 7;
     }
 
-    // First try for a JRE.
+    // First try for an acceptable JRE.
     Log(@"Searching for a Java %d JRE", required);
 
     {
@@ -714,7 +711,7 @@ NSString * findJavaDylib (
         if (dylib != nil) { return dylib; }
     }
 
-    // If JRE not found. Look for an acceptable JDK. If then found, return return address of dylib
+    // If JRE not found. Look for an acceptable JDK. If then found, return address of dylib
     // in the JRE within the JDK.
     Log(@"Searching for a Java JDK", required);
 
@@ -773,8 +770,8 @@ NSString * findJREDylib (
         NSString *errRead = [[NSString alloc] initWithData:data2
                                                   encoding:NSUTF8StringEncoding];
 
-        //  Found something in errRead. Parse it for a Java version string and
-        //  try to extract a major version number.
+        //  Found something in errRead. Parse it for a Java version string and try to extract
+        //  a major version number.
         if (errRead != nil) {
             int version = 0;
 
@@ -791,7 +788,7 @@ NSString * findJREDylib (
                 version = extractMajorVersion(vstring);
 
                 Log(@"Found a Java %@ JRE", vstring);
-                Log(@"Looks like major version %d", extractMajorVersion(vstring));
+                Log(@"Looks like major version %d", version);
             }
 
             if ( (version >= jvmRequired && !exactMatch) || (version == jvmRequired && exactMatch) ) {

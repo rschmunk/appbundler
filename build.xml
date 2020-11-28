@@ -103,6 +103,7 @@ questions.
         <delete dir="HelloWorld.app"/>
         <delete dir="SwingSet2.app"/>
         <delete dir="SwingSet2Plugin.app"/>
+        <delete dir="Test.app"/>
     </target>
 
     <!-- Package target -->

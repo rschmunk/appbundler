@@ -1,11 +1,12 @@
 appbundler
 =============
 
-This is a Java ant task that creates a macOS app Java bundler.
+A Java ant task that creates a macOS app Java bundler.
+
 This repo is forked from the
 [Infinite Kind Application Bundler](https://github.com/TheInfiniteKind/appbundler),
 which in turn is a fork (see "Previous Updates" below) from the original
-[Java Application Bundler](https://svn.java.net/svn/appbundler~svn).
+Java Application Bundler (formerly distributed from Java.net).
 
 Details of the ant task are given in the
 [ant task documentation](http://htmlpreview.github.io/?https://github.com/rschmunk/appbundler/blob/main/appbundler/doc/appbundler.html).
