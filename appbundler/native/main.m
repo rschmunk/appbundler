@@ -153,9 +153,12 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSDictionary *infoDictionary = [mainBundle infoDictionary];
 
     // Test for debugging (but only on the second runthrough)
-    bool isDebugging = (launchCount > 0) && [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];
+    bool debugRequested = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];;
+    bool isDebugging = (launchCount > 0) && debugRequested;
 
-    Log(@"\n\n\n\nLoading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
+    Log(@"\n\nLoading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
+
+    // Log(@"Count %d, Debug Requested %d, Debugging %d", launchCount, debugRequested, isDebugging);
 
     // Set the working directory based on config, defaulting to the user's home directory
     NSString *workingDir = [infoDictionary objectForKey:@WORKING_DIR];
@@ -165,7 +168,10 @@ int launch(char *commandName, int progargc, char *progargv[]) {
         workingDir = [[NSFileManager defaultManager] currentDirectoryPath];
         workingDir = NSHomeDirectory(); // REVIEW: Check which if these ones is realy the users home directory ...
     }
-    Log(@"Working Directory: '%@'", convertRelativeFilePath(workingDir));
+
+    if (isDebugging) {
+        Log(@"Working Directory: '%@'", convertRelativeFilePath(workingDir));
+    }
 
     chdir([workingDir UTF8String]);
 
@@ -176,7 +182,9 @@ int launch(char *commandName, int progargc, char *progargv[]) {
 
         NSString *script =  [NSString stringWithFormat:@"do shell script \"\\\"%@\\\" > /dev/null 2>&1 &\" with administrator privileges", [NSString stringWithCString:commandName encoding:NSASCIIStringEncoding]];
 
-        Log(@"script: %@", script);
+        if (isDebugging) {
+            Log(@"script: %@", script);
+        }
 
         NSAppleScript *appleScript = [[NSAppleScript new] initWithSource:script];
         if ([appleScript executeAndReturnError:&error]) {
@@ -192,7 +200,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSString *jvmRequired = [infoDictionary objectForKey:@JVM_VERSION_KEY];
     bool exactVersionMatch = false;
 
-    // check for jnlp launcher name
+    // Check for jnlp launcher name.
     // This basically circumvents the security problems introduced with 10.8.4 that JNLP Files
     // must be signed to execute them without CTRL+CLick -> Open
     // See: How to sign (dynamic) JNLP files for OSX 10.8.4 and Gatekeeper
@@ -215,7 +223,10 @@ int launch(char *commandName, int progargc, char *progargv[]) {
 
         exactVersionMatch = true;
         jvmRequired = [NSString stringWithFormat:@"1.%i", required];
-        Log(@"Will Require a JVM version '%i' due to JNLP restrictions", required);
+
+        if (isDebugging) {
+            Log(@"Will Require a JVM version '%i' due to JNLP restrictions", required);
+        }
     }
 
     NSString *javaDylib = NULL;
@@ -223,8 +234,12 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     // If a runtime is set, we really want it. If it is not there, we will fail later on.
     if (runtime != nil) {
         NSFileManager *fm = [[NSFileManager alloc] init];
-        for (id dylibRelPath in @[@"Contents/Home/jre/lib/jli", @"Contents/Home/lib/jli", @"Contents/Home/jre/lib", @"Contents/Home/lib"]) {
-            NSString *candidate = [[runtimePath stringByAppendingPathComponent:dylibRelPath] stringByAppendingPathComponent:@LIBJLI_DY_LIB];
+
+        runtimePath = [runtimePath stringByAppendingPathComponent:@"Contents/Home/"];
+
+        for (id dylibRelPath in @[@"jre/lib/jli", @"lib/jli", @"jre/lib", @"lib"]) {
+            NSString *candidate = [[runtimePath stringByAppendingPathComponent:dylibRelPath]
+                                        stringByAppendingPathComponent:@LIBJLI_DY_LIB];
             BOOL isDir;
             BOOL javaDylibFileExists = [fm fileExistsAtPath:candidate isDirectory:&isDir];
             if (javaDylibFileExists && !isDir) {
@@ -233,14 +248,17 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             }
         }
 
-        Log(@"Java Runtime (%@) Relative Path: '%@' (dylib: %@)", runtime, runtimePath, javaDylib);
+        if (isDebugging) {
+            Log(@"Java Runtime (%@) Relative Path: '%@' (dylib: %@)", runtime, runtimePath, javaDylib);
+        }
     }
+    // Else search for the runtimePath, then make it a libjli.dylib path.
     else {
-        // Search for the runtimePath, then make it a libjli.dylib path.
         runtimePath = findJavaDylib (jvmRequired, isDebugging, exactVersionMatch);
         NSFileManager *fm = [[NSFileManager alloc] init];
         for (id dylibRelPath in @[@"jre/lib/jli", @"jre/lib", @"lib/jli", @"lib"]) {
-            NSString *candidate = [[runtimePath stringByAppendingPathComponent:dylibRelPath] stringByAppendingPathComponent:@LIBJLI_DY_LIB];
+            NSString *candidate = [[runtimePath stringByAppendingPathComponent:dylibRelPath]
+                                        stringByAppendingPathComponent:@LIBJLI_DY_LIB];
             BOOL isDir;
             BOOL javaDylibFileExists = [fm fileExistsAtPath:candidate isDirectory:&isDir];
             if (javaDylibFileExists && !isDir) {
@@ -249,7 +267,9 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             }
         }
 
-        Log(@"Java Runtime Dylib Path: '%@'", convertRelativeFilePath(javaDylib));
+        if (isDebugging) {
+            Log(@"Java Runtime Dylib Path: '%@'", convertRelativeFilePath(javaDylib));
+        }
     }
 
     const char *libjliPath = NULL;
@@ -304,7 +324,9 @@ int launch(char *commandName, int progargc, char *progargv[]) {
                                  reason:NSLocalizedString(@"BundlePathContainsColon", @UNSPECIFIED_ERROR)
                                userInfo:nil] raise];
     }
-    Log(@"Main Bundle Path: '%@'", mainBundlePath);
+    if (isDebugging) {
+        Log(@"Main Bundle Path: '%@'", mainBundlePath);
+    }
 
     // Set the class path
     NSString *javaPath = [mainBundlePath stringByAppendingString:@"/Contents/Java"];
@@ -427,7 +449,9 @@ int launch(char *commandName, int progargc, char *progargv[]) {
         }
     }
 
-    Log(@"Main Class Name: '%@'", mainClassName);
+    if (isDebugging) {
+        Log(@"Main Class Name: '%@'", mainClassName);
+    }
 
     // If a jar file is defined as launcher, disacard the javaPath
     if ( jarlauncher != nil ) {
@@ -606,20 +630,27 @@ int launch(char *commandName, int progargc, char *progargv[]) {
         option = [option stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
         option = [option stringByReplacingOccurrencesOfString:@JVM_RUNTIME withString:runtimePath];
         argv[i++] = strdup([option UTF8String]);
-        Log(@"Option: %@",option);
+
+        if (isDebugging) {
+            Log(@"Option: %@",option);
+        }
     }
 
     for (NSString *defaultOption in defaultOptions) {
         defaultOption = [defaultOption stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
         argv[i++] = strdup([defaultOption UTF8String]);
-        Log(@"DefaultOption: %@",defaultOption);
+
+        if (isDebugging) {
+            Log(@"DefaultOption: %@",defaultOption);
+        }
     }
 
     if (runningModule) {
         argv[i++] = "-m";
         argv[i++] = strdup([mainClassName UTF8String]);
-    } else
+    } else {
         argv[i++] = strdup([mainClassName UTF8String]);
+    }
 
     for (NSString *argument in arguments) {
         argument = [argument stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
@@ -632,10 +663,12 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     }
 
     // Print the full command line for debugging purposes...
-    Log(@"Command line passed to application:");
-    int j=0;
-    for(j=0; j<i; j++) {
-        Log(@"Arg %d: '%s'", j, argv[j]);
+    if (isDebugging) {
+        Log(@"Command line passed to application:");
+        int j=0;
+        for(j=0; j<i; j++) {
+            Log(@"Arg %d: '%s'", j, argv[j]);
+        }
     }
 
     launchCount++;
@@ -703,8 +736,9 @@ NSString * findJavaDylib (
     }
 
     // First try for an acceptable JRE.
-    Log(@"Searching for a Java %d JRE", required);
-
+    if (isDebugging) {
+        Log(@"Searching for a Java %d JRE", required);
+    }
     {
         NSString * dylib = findJREDylib (required, isDebugging, exactMatch);
 
@@ -713,8 +747,9 @@ NSString * findJavaDylib (
 
     // If JRE not found. Look for an acceptable JDK. If then found, return address of dylib
     // in the JRE within the JDK.
-    Log(@"Searching for a Java JDK", required);
-
+    if (isDebugging) {
+        Log(@"Searching for a Java JDK", required);
+    }
     {
         NSString * dylib = findJDKDylib (required, isDebugging, exactMatch);
 
@@ -787,15 +822,21 @@ NSString * findJREDylib (
 
                 version = extractMajorVersion(vstring);
 
-                Log(@"Found a Java %@ JRE", vstring);
-                Log(@"Looks like major version %d", version);
+                if (isDebugging) {
+                    Log(@"Found a Java %@ JRE", vstring);
+                    Log(@"Looks like major version %d", version);
+                }
             }
 
             if ( (version >= jvmRequired && !exactMatch) || (version == jvmRequired && exactMatch) ) {
-                Log(@"JRE version qualifies");
+                if (isDebugging) {
+                    Log(@"JRE version qualifies");
+                }
                 return @JAVA_RUNTIME;
             } else {
-                Log(@"JRE version does not qualify");
+                if (isDebugging) {
+                    Log(@"JRE version does not qualify");
+                }
             }
         }
     }
@@ -852,10 +893,12 @@ NSString * findJDKDylib (
         NSString *errRead = [[NSString alloc] initWithData:data2
                                                   encoding:NSUTF8StringEncoding];
 
-        //  If matching JDK (or later) not found, outRead will include something like
-        //  "Unable to find any JVMs matching version "X[.X]"."
+        // If matching JDK (or later) not found, outRead will include something like
+        // "Unable to find any JVMs matching version "X[.X]"."
         if ( errRead != nil && [errRead rangeOfString:@"Unable"].location != NSNotFound ) {
-            Log(@"No matching JDK found.");
+            if (isDebugging) {
+                Log(@"No matching JDK found.");
+            }
             return nil;
         }
 
@@ -884,12 +927,16 @@ NSString * findJDKDylib (
 
             version = extractMajorVersion(vstring);
 
-            Log(@"Found a Java %@ JDK", vstring);
-            Log(@"Looks like major version %d", extractMajorVersion(vstring));
+            if (isDebugging) {
+                Log(@"Found a Java %@ JDK", vstring);
+                Log(@"Looks like major version %d", extractMajorVersion(vstring));
+            }
         }
 
         if ( (version >= jvmRequired && !exactMatch) || (version == jvmRequired && exactMatch) ) {
-            Log(@"JDK version qualifies");
+            if (isDebugging) {
+                Log(@"JDK version qualifies");
+            }
 
             NSString *outread2 = [outRead stringByTrimmingCharactersInSet:[NSCharacterSet
                                                                            whitespaceAndNewlineCharacterSet]];
@@ -904,7 +951,9 @@ NSString * findJDKDylib (
             }
         }
 
-        Log(@"JDK version does not qualify");
+        if (isDebugging) {
+            Log(@"JDK version does not qualify");
+        }
     }
     @catch (NSException *exception)
     {
