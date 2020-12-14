@@ -48,7 +48,6 @@
 #define JVM_RUN_JNLP "JVMJNLPLauncher"
 #define JVM_RUN_JAR "JVMJARLauncher"
 
-
 #define UNSPECIFIED_ERROR "An unknown error occurred."
 
 #define APP_ROOT_PREFIX "$APP_ROOT"
@@ -57,7 +56,6 @@
 #define JAVA_RUNTIME  "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home"
 #define LIBJLI_DY_LIB "libjli.dylib"
 #define DEPLOY_LIB    "lib/deploy.jar"
-
 
 #define DLog(...) NSLog(@"%s %@", __PRETTY_FUNCTION__, [NSString stringWithFormat:__VA_ARGS__])
 
@@ -91,6 +89,7 @@ int extractMajorVersion (NSString *);
 NSString * convertRelativeFilePath(NSString *);
 NSString * addDirectoryToSystemArguments(NSUInteger, NSSearchPathDomainMask, NSString *, NSMutableArray *);
 void addModifierFlagToSystemArguments(NSEventModifierFlags, NSString *, NSEventModifierFlags, NSMutableArray *);
+void raiseMissingInsufficient(NSString *);
 static void Log(NSString *format, ...);
 static void NSPrint(NSString *format, va_list args);
 
@@ -156,9 +155,9 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     bool debugRequested = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];;
     bool isDebugging = (launchCount > 0) && debugRequested;
 
-    Log(@"\n\nLoading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
+    Log(@"Loading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
 
-    // Log(@"Count %d, Debug Requested %d, Debugging %d", launchCount, debugRequested, isDebugging);
+    // NSLog(@"Count %d, Debug Requested %d, Debugging %d", launchCount, debugRequested, isDebugging);
 
     // Set the working directory based on config, defaulting to the user's home directory
     NSString *workingDir = [infoDictionary objectForKey:@WORKING_DIR];
@@ -166,7 +165,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
         workingDir = [workingDir stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
     } else {
         workingDir = [[NSFileManager defaultManager] currentDirectoryPath];
-        workingDir = NSHomeDirectory(); // REVIEW: Check which if these ones is realy the users home directory ...
+        workingDir = NSHomeDirectory(); // REVIEW: Check which if these ones is really the user's home directory ...
     }
 
     if (isDebugging) {
@@ -252,9 +251,13 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             Log(@"Java Runtime (%@) Relative Path: '%@' (dylib: %@)", runtime, runtimePath, javaDylib);
         }
     }
+
     // Else search for the runtimePath, then make it a libjli.dylib path.
     else {
         runtimePath = findJavaDylib (jvmRequired, isDebugging, exactVersionMatch);
+        if (runtimePath == nil) {
+            raiseMissingInsufficient(jvmRequired);
+        }
         NSFileManager *fm = [[NSFileManager alloc] init];
         for (id dylibRelPath in @[@"jre/lib/jli", @"jre/lib", @"lib/jli", @"lib"]) {
             NSString *candidate = [[runtimePath stringByAppendingPathComponent:dylibRelPath]
@@ -273,8 +276,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     }
 
     const char *libjliPath = NULL;
-    if (javaDylib != nil)
-    {
+    if (javaDylib != nil) {
         libjliPath = [javaDylib fileSystemRepresentation];
     }
 
@@ -296,12 +298,14 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             if (required < 7) { required = 7; }
 
             NSString *msga = NSLocalizedString(@"JRExLoadFullError", @UNSPECIFIED_ERROR);
+
+            msg = [NSString stringWithFormat:msga, required];
         }
         else {
             msg = NSLocalizedString(@"JRELoadError", @UNSPECIFIED_ERROR);
         }
 
-        Log(@"Error launching JVM Runtime (%@) Relative Path: '%@' (dylib: %@)\n  error: %@",
+        Log(@"Error launching JVM Runtime (%@) Relative Path: '%@' (dylib: %@)\n error: %@",
              runtime, runtimePath, javaDylib, msg);
 
         [[NSException exceptionWithName:@JAVA_LAUNCH_ERROR
@@ -493,24 +497,42 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     }
 
     // Set OSX special folders
-    NSString * libraryDirectory = addDirectoryToSystemArguments(NSLibraryDirectory, NSUserDomainMask, @"LibraryDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSDocumentDirectory, NSUserDomainMask, @"DocumentsDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSApplicationSupportDirectory, NSUserDomainMask, @"ApplicationSupportDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSCachesDirectory, NSUserDomainMask, @"CachesDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSApplicationDirectory, NSUserDomainMask, @"ApplicationDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSAutosavedInformationDirectory, NSUserDomainMask, @"AutosavedInformationDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSDesktopDirectory, NSUserDomainMask, @"DesktopDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSDownloadsDirectory, NSUserDomainMask, @"DownloadsDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSMoviesDirectory, NSUserDomainMask, @"MoviesDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSMusicDirectory, NSUserDomainMask, @"MusicDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSPicturesDirectory, NSUserDomainMask, @"PicturesDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSSharedPublicDirectory, NSUserDomainMask, @"SharedPublicDirectory", systemArguments);
+    NSString * libraryDirectory = addDirectoryToSystemArguments(NSLibraryDirectory,
+                        NSUserDomainMask, @"LibraryDirectory", systemArguments);
 
-    addDirectoryToSystemArguments(NSLibraryDirectory, NSLocalDomainMask, @"SystemLibraryDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSApplicationSupportDirectory, NSLocalDomainMask, @"SystemApplicationSupportDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSCachesDirectory, NSLocalDomainMask, @"SystemCachesDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSApplicationDirectory, NSLocalDomainMask, @"SystemApplicationDirectory", systemArguments);
-    addDirectoryToSystemArguments(NSUserDirectory, NSLocalDomainMask, @"SystemUserDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSDocumentDirectory, NSUserDomainMask,
+                @"DocumentsDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSApplicationSupportDirectory, NSUserDomainMask,
+                @"ApplicationSupportDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSCachesDirectory, NSUserDomainMask,
+                @"CachesDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSApplicationDirectory, NSUserDomainMask,
+                @"ApplicationDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSAutosavedInformationDirectory, NSUserDomainMask,
+                @"AutosavedInformationDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSDesktopDirectory, NSUserDomainMask,
+                @"DesktopDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSDownloadsDirectory, NSUserDomainMask,
+                @"DownloadsDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSMoviesDirectory, NSUserDomainMask,
+                @"MoviesDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSMusicDirectory, NSUserDomainMask,
+                @"MusicDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSPicturesDirectory, NSUserDomainMask,
+                @"PicturesDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSSharedPublicDirectory, NSUserDomainMask,
+                @"SharedPublicDirectory", systemArguments);
+
+    addDirectoryToSystemArguments(NSLibraryDirectory, NSLocalDomainMask,
+                @"SystemLibraryDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSApplicationSupportDirectory, NSLocalDomainMask,
+                @"SystemApplicationSupportDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSCachesDirectory, NSLocalDomainMask,
+                @"SystemCachesDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSApplicationDirectory, NSLocalDomainMask,
+                @"SystemApplicationDirectory", systemArguments);
+    addDirectoryToSystemArguments(NSUserDirectory, NSLocalDomainMask,
+                @"SystemUserDirectory", systemArguments);
 
     // get the user's home directory, independent of the sandbox container
     int bufsize;
@@ -550,14 +572,22 @@ int launch(char *commandName, int progargc, char *progargv[]) {
 
         [systemArguments addObject:[NSString stringWithFormat:@"-DLaunchModifierFlags=%lu", (unsigned long)launchModifierFlags]];
 
-        addModifierFlagToSystemArguments(NSEventModifierFlagCapsLock, @"LaunchModifierFlagCapsLock", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagShift, @"LaunchModifierFlagShift", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagControl, @"LaunchModifierFlagControl", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagOption, @"LaunchModifierFlagOption", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagCommand, @"LaunchModifierFlagCommand", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagNumericPad, @"LaunchModifierFlagNumericPad", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagHelp, @"LaunchModifierFlagHelp", launchModifierFlags, systemArguments);
-        addModifierFlagToSystemArguments(NSEventModifierFlagFunction, @"LaunchModifierFlagFunction", launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagCapsLock,
+                    @"LaunchModifierFlagCapsLock",  launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagShift,
+                    @"LaunchModifierFlagShift",     launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagControl,
+                    @"LaunchModifierFlagControl",   launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagOption,
+                    @"LaunchModifierFlagOption",    launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagCommand,
+                    @"LaunchModifierFlagCommand",   launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagNumericPad,
+                    @"LaunchModifierFlagNumericPad", launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagHelp,
+                    @"LaunchModifierFlagHelp",      launchModifierFlags, systemArguments);
+        addModifierFlagToSystemArguments(NSEventModifierFlagFunction,
+                    @"LaunchModifierFlagFunction",  launchModifierFlags, systemArguments);
     }
 
     // Remove -psn argument
@@ -842,7 +872,11 @@ NSString * findJREDylib (
     }
     @catch (NSException *exception)
     {
-        Log(@"JRE search exception: '%@'", [exception reason]);
+        // Modify this to ignore "launch path not accessible" reason, as that means no JRE at
+        // expected path, but report other exception(s).
+        if (isDebugging) {
+            Log(@"JRE search exception: '%@'", [exception reason]);
+        }
     }
 
     return nil;
@@ -1020,6 +1054,30 @@ void addModifierFlagToSystemArguments(NSEventModifierFlags mask, NSString *syste
     NSString *modifierFlagValue = (modifierFlags & mask) ? @"true" : @"false";
     NSString *modifierFlagVar = [NSString stringWithFormat:@"-D%@=%@", systemProperty, modifierFlagValue];
     [systemArguments addObject:modifierFlagVar];
+}
+
+/**
+ *
+ */
+void raiseMissingInsufficient(NSString *jvmRequired)
+{
+    NSString *msg;
+
+    if (jvmRequired != nil) {
+        int required = extractMajorVersion (jvmRequired);
+
+        if (required < 7) { required = 7; }
+
+        NSString *msga = NSLocalizedString(@"JRExLoadFullError", @UNSPECIFIED_ERROR);
+
+        msg = [NSString stringWithFormat:msga, required];
+    }
+    else {
+        msg = NSLocalizedString(@"JRELoadError", @UNSPECIFIED_ERROR);
+    }
+
+    [[NSException exceptionWithName:@JAVA_LAUNCH_ERROR
+                             reason:msg userInfo:nil] raise];
 }
 
 /**
