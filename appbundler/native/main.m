@@ -42,6 +42,8 @@
 #define JVM_CLASSPATH_KEY "JVMClassPath"
 #define JVM_VERSION_KEY "JVMVersion"
 #define JVM_DEBUG_KEY "JVMDebug"
+#define JVM_VERBOSE_KEY "JVMVerbose"
+
 #define IGNORE_PSN_KEY "IgnorePSN"
 
 #define JVM_RUN_PRIVILEGED "JVMRunPrivileged"
@@ -119,8 +121,9 @@ int main(int argc, char *argv[]) {
     return result;
 }
 
-
-// Get the amount of physical RAM on this machine
+/*
+ * Get the amount of physical RAM on this machine
+ */
 int64_t get_ram_size() {
     int mib[2] = {CTL_HW, HW_MEMSIZE};
     int64_t physical_memory;
@@ -131,16 +134,10 @@ int64_t get_ram_size() {
     return 0;
 }
 
-
+/*
+ *
+ */
 int launch(char *commandName, int progargc, char *progargv[]) {
-
-    // check args for `--verbose`
-    for (int i = 0; i < progargc; i++) {
-        if (strcmp(progargv[i], "--verbose")) {
-            isVerbose = true;
-        }
-    }
-
     // Preparation for jnlp launcher arguments
     const char *const_jargs = NULL;
     const char *const_appclasspath = NULL;
@@ -152,8 +149,11 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSDictionary *infoDictionary = [mainBundle infoDictionary];
 
     // Test for debugging (but only on the second runthrough)
-    bool debugRequested = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];;
-    bool isDebugging = (launchCount > 0) && debugRequested;
+    bool debugRequested   = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];;
+    bool verboseRequested = [[infoDictionary objectForKey:@JVM_VERBOSE_KEY] boolValue];;
+
+    isDebugging = (launchCount > 0) && debugRequested;
+    isVerbose   = isDebugging && verboseRequested;
 
     Log(@"Loading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
 
@@ -773,16 +773,13 @@ NSString * findJavaDylib (
 /**
  *  Searches for a JRE dylib of the specified version or later.
  */
-NSString * findJREDylib (
-                         int jvmRequired,
+NSString * findJREDylib (int jvmRequired,
                          bool isDebugging,
                          bool exactMatch)
 {
     // Try the "java -version" shell command and see if we get a response and if so whether
     // the version is acceptable.
     // If found, return address for dylib that should be in the JRE package.
-    // Note that for unknown but ancient reasons, the result is output to STDERR rather than to
-    // STDOUT.
     @try
     {
         NSTask *task = [[NSTask alloc] init];
@@ -814,13 +811,15 @@ NSString * findJREDylib (
         NSString *errRead = [[NSString alloc] initWithData:data2
                                                   encoding:NSUTF8StringEncoding];
 
-        //  Found something in errRead. Parse it for a Java version string and try to extract
-        //  a major version number.
+        // For unknown but ancient reasons, the "java -version" result is output to STDERR rather
+        // than to STDOUT.
+        // Parse it for a Java version string and try to extract a major version number.
         if (errRead != nil) {
             int version = 0;
 
-            // The result of the version command is 'java version "1.x"' or 'java version "9"'
-            // or 'openjdk version "1.x" or 'openjdk version "12.x.y"'
+            // The result of the version command should look like 'java version "XXXX"',
+            // where parsing of the XXX may take some extra effort.
+            // BUG? Should we also consider looking for 'openjdk version "XXXX"'?
             NSRange vrange = [errRead rangeOfString:@"java version \""];
 
             if (vrange.location != NSNotFound) {
@@ -1052,8 +1051,19 @@ static void Log(NSString *format, ...)
     va_start(args, format);
 
     if (isDebugging) {
-        NSLog(format, args);
+        NSPrint(format, args);
     }
+
+    va_end(args);
+}
+
+/**
+ *
+ */
+static void LogVerbose(NSString *format, ...)
+{
+    va_list args;
+    va_start(args, format);
 
     if (isVerbose) {
         NSPrint(format, args);

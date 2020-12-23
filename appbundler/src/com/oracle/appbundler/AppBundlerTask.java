@@ -89,6 +89,7 @@ public class AppBundlerTask extends Task {
     private boolean supportsAutomaticGraphicsSwitching = true;
     private boolean hideDockIcon = false;
     private boolean isDebug = false;
+    private boolean isVerbose = false;
     private boolean ignorePSN = false;
 
     // JVM info properties
@@ -204,6 +205,10 @@ public class AppBundlerTask extends Task {
 
     public void setDebug(boolean enabled) {
         this.isDebug = enabled;
+    }
+
+    public void setVerbose(boolean enabled) {
+        this.isVerbose = enabled;
     }
 
     public void setSupportsAutomaticGraphicsSwitching(boolean supportsAutomaticGraphicsSwitching) {
@@ -691,8 +696,11 @@ public class AppBundlerTask extends Task {
                 writeStringArray(xout,"JVMClassPath", plistClassPaths, 2);
             }
 
-            // Write whether launcher be verbose with debug msgs
+            // Write whether launcher should issue debug msgs
             writeProperty(xout, "JVMDebug", isDebug, 2);
+
+            // Write whether launcher be verbose with debug msgs
+            writeProperty(xout, "JVMVerbose", isVerbose, 2);
 
             // Write jar launcher name
             writeProperty(xout, "JVMJARLauncher", jarLauncherName, 2);
